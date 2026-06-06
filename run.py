@@ -233,6 +233,8 @@ def run_wfo(args) -> None:
         m["profit_factor"] = gross_profit / gross_loss if gross_loss else float("inf")
         m["win_rate"]      = float(len(wins) / len(pnl))
         m["expectancy"]    = float(pnl.mean())
+        m["avg_win"]       = float(wins.mean())   if len(wins)   else 0.0
+        m["avg_loss"]      = float(losses.mean()) if len(losses) else 0.0
     mc = monte_carlo(pnl)
 
     result = build_report(

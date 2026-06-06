@@ -192,9 +192,12 @@ def build_report(
         lines += [
             "",
             " Trade quality",
+            f"   Trades             : {int(extra_metrics.get('n_trades', 0))}",
             f"   Profit factor      : {extra_metrics.get('profit_factor', float('nan')):.2f}",
             f"   Win rate           : {extra_metrics.get('win_rate', 0):.2%}",
             f"   Expectancy/trade   : {extra_metrics.get('expectancy', 0):,.1f}",
+            f"   Avg win            : {extra_metrics.get('avg_win', 0):,.1f}",
+            f"   Avg loss           : {extra_metrics.get('avg_loss', 0):,.1f}",
         ]
     if montecarlo is not None:
         lines += [
