@@ -28,6 +28,7 @@ python run.py single --source synthetic --n-bars 3000
 
 # Walk-forward on Yahoo SPY daily
 python run.py wfo --source yahoo --symbol SPY --train-bars 756 --oos-bars 126
+python run.py wfo --source ctrader --symbol SPY --train-bars 756 --oos-bars 126
 ```
 
 ## Data sources
@@ -40,6 +41,16 @@ python run.py wfo --source yahoo --symbol SPY --train-bars 756 --oos-bars 126
 | `alpaca`    | US equities (intraday)   | `ALPACA_*` in `.env`    |
 | `etoro`     | eToro instruments        | `ETORO_*` in `.env`     |
 | `ctrader`   | FX/CFDs (Pepperstone)    | `CTRADER_*` in `.env`   |
+
+Timeframe
+['1Min', '5Min', '15Min', '30Min', '1H', '4H', '1D', '1W']
+
+E:\Data\QTPI\Models\ModA-D-WF0>python run.py wfo --source cTrader --symbol SPY --train-bars 756 --oos-bars 126
+usage: run.py wfo [-h] [--source {synthetic,csv,yahoo,alpaca,etoro,ctrader}] [--symbol SYMBOL] [--timeframe TIMEFRAME]
+                  [--n-bars N_BARS] [--csv FILE] [--bars-per-year BARS_PER_YEAR] [--equity EQUITY]
+                  [--commission COMMISSION] [--slippage SLIPPAGE] [--out-dir OUT_DIR] [--label LABEL]
+                  [--train-bars TRAIN_BARS] [--oos-bars OOS_BARS] [--min-trades MIN_TRADES] [--max-trades MAX_TRADES]
+                  [--bottom-mru-p BOTTOM_MRU_P] [--jobs JOBS] [--benchmark BENCHMARK] [--no-benchmark]
 
 See [datafeed/docs/SOURCES.md](../datafeed/docs/SOURCES.md) for depth, bar
 counts, and credential setup.

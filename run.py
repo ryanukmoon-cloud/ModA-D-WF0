@@ -55,6 +55,43 @@ from mymodel.reporting import build_report
 
 
 # --------------------------------------------------------------------------- #
+# bars_per_year auto-detection
+# --------------------------------------------------------------------------- #
+
+# Approximate trading bars per calendar year, keyed by source-type and timeframe.
+# FX/CFD (cTrader, eToro): 260 trading days, ~24 h/day sessions.
+# Equity/ETF  (Yahoo, Alpaca, CSV/synthetic default): 252 days, 6.5 h/day.
+_BARS_PER_YEAR: dict[str, dict[str, int]] = {
+    "equity": {
+        "1D": 252, "4H": 403, "1H": 1638, "30Min": 3276,
+        "15Min": 6552, "10Min": 9828, "5Min": 19656, "1Min": 98280,
+    },
+    "fx": {
+        "1D": 260, "4H": 1560, "1H": 6240, "30Min": 12480,
+        "15Min": 24960, "10Min": 37440, "5Min": 74880, "1Min": 374400,
+    },
+}
+_FX_SOURCES = {"ctrader", "etoro"}
+
+
+def _auto_bars_per_year(timeframe: str, source: str) -> int:
+    """Return a sensible bars-per-year estimate from timeframe + data source."""
+    market = "fx" if source in _FX_SOURCES else "equity"
+    return _BARS_PER_YEAR.get(market, {}).get(timeframe, 252)
+
+
+def _resolve_bars_per_year(args) -> int:
+    """Return explicit --bars-per-year if given, else auto-detect from timeframe."""
+    explicit = getattr(args, "bars_per_year", None)
+    if explicit is not None:
+        return int(explicit)
+    tf  = getattr(args, "timeframe", "1D")
+    src = getattr(args, "source", "synthetic")
+    bpy = _auto_bars_per_year(tf, src)
+    return bpy
+
+
+# --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
 
@@ -70,7 +107,9 @@ def _load_data(args) -> pd.DataFrame:
         csv_path  = getattr(args, "csv", None),
     )
     df = load_data(cfg)
-    print(f"Loaded {len(df):,} bars  ({df.index[0]}  ->  {df.index[-1]})")
+    bpy = _resolve_bars_per_year(args)
+    print(f"Loaded {len(df):,} bars  ({df.index[0]}  ->  {df.index[-1]})  "
+          f"[timeframe={cfg.timeframe}  bars/year={bpy}]")
     return df
 
 
@@ -125,7 +164,7 @@ def run_single(args) -> None:
 
     sig  = strategy.signals(data, params)
     res  = Backtester(_bt_config(args)).run(sig)
-    m    = compute_metrics(res, bars_per_year=getattr(args, "bars_per_year", 252))
+    m    = compute_metrics(res, bars_per_year=_resolve_bars_per_year(args))
     mc   = monte_carlo(res.trade_pnl)
 
     print(f"Net P&L: {m['net_profit']:,.0f}  |  Trades: {int(m['n_trades'])}  "
@@ -138,7 +177,7 @@ def run_single(args) -> None:
         trade_pnl     = res.trade_pnl,
         extra_metrics = m,
         montecarlo    = mc,
-        bars_per_year = getattr(args, "bars_per_year", 252),
+        bars_per_year = _resolve_bars_per_year(args),
         initial_equity= rc.initial_equity,
     )
     print(result["text"])
@@ -166,7 +205,7 @@ def run_wfo(args) -> None:
 
     strategy = DualEMAStrategy()
     wf = WalkForward(wfo_cfg, _bt_config(args),
-                     bars_per_year=getattr(args, "bars_per_year", 252),
+                     bars_per_year=_resolve_bars_per_year(args),
                      n_jobs=rc.n_jobs,
                      strategy=strategy)
 
@@ -183,7 +222,7 @@ def run_wfo(args) -> None:
     bm_sym = None if getattr(args, "no_benchmark", False) else getattr(args, "benchmark", "^GSPC")
     benchmark = _load_benchmark(bm_sym, data.index[0], data.index[-1]) if bm_sym else None
 
-    bpy = getattr(args, "bars_per_year", 252)
+    bpy = _resolve_bars_per_year(args)
     m = equity_metrics(wfo_result.oos_equity, bpy)
     # Augment with trade-level metrics from the stitched OOS P&Ls.
     pnl = wfo_result.oos_trades_pnl
@@ -206,7 +245,7 @@ def run_wfo(args) -> None:
         extra_metrics  = m,
         montecarlo     = mc,
         param_evolution= pe,
-        bars_per_year  = getattr(args, "bars_per_year", 252),
+        bars_per_year  = _resolve_bars_per_year(args),
         benchmark      = benchmark,
         initial_equity = rc.initial_equity,
     )
@@ -227,7 +266,11 @@ def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--timeframe",    default="1D")
     p.add_argument("--n-bars",       type=int, default=3000, dest="n_bars")
     p.add_argument("--csv",          default=None, metavar="FILE")
-    p.add_argument("--bars-per-year",type=int, default=252, dest="bars_per_year")
+    p.add_argument("--bars-per-year",type=int, default=None, dest="bars_per_year",
+                   metavar="N",
+                   help="Bars per calendar year for annualising metrics. "
+                        "Auto-detected from --timeframe + --source if omitted "
+                        "(e.g. 1D equity=252, 4H FX=1560).")
     p.add_argument("--equity",       type=float, default=100_000.0)
     p.add_argument("--commission",   type=float, default=0.0,
                    help="Round-trip commission as a fraction (e.g. 0.001 = 0.1%%)")
