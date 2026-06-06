@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# Results / generated artefacts
+results/
+*.png
+*_report.txt
+*_param_evolution.csv
+*.parquet
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/

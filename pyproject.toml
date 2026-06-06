@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "mymodel"
+version = "0.1.0"
+description = "Strategy model built on wfolab + datafeed"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "python-dotenv",
+    "matplotlib",   # for reporting
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mymodel*"]
