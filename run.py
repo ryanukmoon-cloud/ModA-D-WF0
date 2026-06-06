@@ -120,14 +120,12 @@ def _load_benchmark(symbol: str, start, end) -> pd.Series | None:
     try:
         from datafeed import load_data     # type: ignore[import]
 
-        class _Cfg:
-            source    = "yahoo"
-            symbol    = symbol
-            timeframe = "1D"
-            n_bars    = 10_000
-            csv_path  = None
-
-        df = load_data(_Cfg())
+        import types
+        _cfg = types.SimpleNamespace(
+            source="yahoo", symbol=symbol, timeframe="1D",
+            n_bars=10_000, csv_path=None,
+        )
+        df = load_data(_cfg)
         s = df["close"].loc[start:end]
         print(f"Benchmark {symbol}: {len(s)} bars")
         return s
